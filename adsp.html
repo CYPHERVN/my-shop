@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYPHER VN | QUẢN TRỊ VIÊN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --neon: #00f2ff; --bg-body: #05060a; --bg-card: #0e111a;
+            --text: #ffffff; --border: rgba(0, 242, 255, 0.3);
+            --red: #ff4757; --green: #2ecc71; --orange: #f39c12;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Lexend', sans-serif; font-weight: 900 !important; }
+        body { background-color: var(--bg-body); color: var(--text); padding: 20px; }
+        
+        .header-admin { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--neon); padding-bottom: 15px; }
+        .header-admin h1 { font-size: 24px; color: var(--neon); text-shadow: 0 0 10px var(--neon); }
+
+        .section-title { color: var(--neon); font-size: 18px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        
+        /* Notifications */
+        .noti-container { background: rgba(243, 156, 18, 0.05); border: 1px solid var(--orange); border-radius: 15px; padding: 15px; margin-bottom: 30px; }
+        .noti-item { 
+            background: #000; border: 1px solid #333; padding: 15px; border-radius: 12px; 
+            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .noti-info b { color: var(--neon); }
+        .noti-info span { color: var(--green); }
+        .noti-time { font-size: 10px; color: #555; margin-top: 5px; }
+
+        /* Table */
+        .admin-table-wrapper { background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { background: rgba(0, 242, 255, 0.1); color: var(--neon); padding: 15px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+        
+        /* Buttons */
+        .btn-sm { padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 11px; color: #000; transition: 0.3s; display: flex; align-items: center; gap: 5px; }
+        .btn-approve { background: var(--green); }
+        .btn-delete { background: var(--red); color: white; }
+        .btn-edit { background: var(--neon); }
+        .btn-history { background: var(--orange); }
+        .btn-sm:hover { opacity: 0.8; transform: scale(1.05); }
+
+        /* Modal Edit */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
+        .modal-content { background: var(--bg-card); padding: 25px; border-radius: 25px; border: 2px solid var(--neon); width: 100%; max-width: 400px; box-shadow: 0 0 50px rgba(0, 242, 255, 0.2); }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 11px; color: var(--neon); margin-bottom: 8px; text-transform: uppercase; }
+        .input-group input { width: 100%; padding: 15px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 12px; outline: none; transition: 0.3s; }
+        .input-group input:focus { border-color: var(--neon); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="header-admin">
+        <h1>ADMIN CYPHER</h1>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-sm btn-delete" onclick="clearAllData()"><i class="fa-solid fa-triangle-exclamation"></i> RESET SHOP</button>
+            <button class="btn-sm btn-edit" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> LÀM MỚI</button>
+        </div>
+    </div>
+
+    <div class="section-title" style="color: var(--orange);"><i class="fa-solid fa-bell"></i> THÔNG BÁO NẠP TIỀN</div>
+    <div class="noti-container" id="noti-list"></div>
+
+    <div class="section-title"><i class="fa-solid fa-users"></i> QUẢN LÝ THÀNH VIÊN</div>
+    <div class="admin-table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>TÀI KHOẢN</th>
+                    <th>MẬT KHẨU</th>
+                    <th>SỐ DƯ</th>
+                    <th>THAO TÁC</th>
+                </tr>
+            </thead>
+            <tbody id="user-list"></tbody>
+        </table>
+    </div>
+
+    <div class="modal" id="modal-edit-money">
+        <div class="modal-content">
+            <h2 id="edit-user-title" style="color: var(--neon); margin-bottom: 20px; font-size: 20px;">CỘNG TIỀN</h2>
+            <div class="input-group">
+                <label>Số tiền thay đổi (Dùng dấu - để trừ)</label>
+                <input type="number" id="edit-amount" placeholder="Ví dụ: 50000">
+            </div>
+            <input type="hidden" id="edit-username">
+            <button class="btn-sm btn-approve" style="width: 100%; justify-content: center; padding: 15px; font-size: 14px;" onclick="confirmEditMoney()">XÁC NHẬN GIAO DỊCH</button>
+            <button class="btn-sm" style="width: 100%; margin-top: 15px; background: none; color: #555; justify-content: center;" onclick="closeModal()">HUỶ BỎ</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = "https://wrycddmxxuttnizseskb.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_ftRdvz-O9vmTi8enhHCo0g___fH5dWv";
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const ADMIN_KEY = "280128102008";
+
+        if (sessionStorage.getItem("adm_logged") !== "true") {
+            const pass = prompt("NHẬP MÃ TRUY CẬP ADMIN:");
+            if (pass === ADMIN_KEY) { sessionStorage.setItem("adm_logged", "true"); } 
+            else { alert("Sai mã khóa!"); window.location.href = "index.html"; }
+        }
+
+        async function renderAdmin() {
+            // 1. Load Thành viên
+            const { data: users } = await supabase.from('users').select('*');
+            if (users) {
+                document.getElementById('user-list').innerHTML = users.map(u => `
+                    <tr>
+                        <td>${u.username}</td>
+                        <td style="color: #444; font-size: 11px;">${u.password}</td>
+                        <td style="color: var(--neon);">${Number(u.balance).toLocaleString()}đ</td>
+                        <td style="display: flex; gap: 8px;">
+                            <button class="btn-sm btn-edit" onclick="openEditMoney('${u.username}')"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn-sm btn-history" onclick="viewUserHistory('${u.username}')"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                            <button class="btn-sm btn-delete" onclick="deleteUser('${u.username}')"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // 2. Load Thông báo nạp tiền
+            const { data: notis } = await supabase.from('notifications').select('*');
+            const notiList = document.getElementById('noti-list');
+            if (!notis || notis.length === 0) {
+                notiList.innerHTML = '<p style="text-align: center; color: #444; font-size: 12px; padding: 20px;">Không có thông báo mới.</p>';
+            } else {
+                notiList.innerHTML = notis.map(n => `
+                    <div class="noti-item">
+                        <div class="noti-info">
+                            <b>${n.user}</b> báo nạp <span>${Number(n.amount).toLocaleString()}đ</span>
+                            <div class="noti-time">${n.detail}</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-sm btn-approve" onclick="approveDeposit('${n.user}', ${n.amount}, ${n.id})">DUYỆT</button>
+                            <button class="btn-sm btn-delete" onclick="removeNoti(${n.id})">XÓA</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Hàm xem lịch sử (Đã đồng bộ với cấu trúc của Shop)
+        async function viewUserHistory(username) {
+            const { data } = await supabase.from('users').select('history').eq('username', username).single();
+            if (data && data.history && data.history.length > 0) {
+                const h = data.history;
+                alert("LỊCH SỬ CỦA " + username + ":\n" + h.map(i => "- " + i.name + " (" + i.price + ") ngày " + i.date).join("\n"));
+            } else {
+                alert("Người dùng này chưa có lịch sử mua hàng.");
+            }
+        }
+
+        // Các hàm khác giữ nguyên nhưng đảm bảo gọi renderAdmin()
+        async function approveDeposit(username, amount, id) {
+            const { data: user } = await supabase.from('users').select('balance').eq('username', username).single();
+            if (user) {
+                await supabase.from('users').update({ balance: user.balance + Number(amount) }).eq('username', username);
+                await supabase.from('notifications').delete().eq('id', id);
+                alert("Đã duyệt tiền!");
+                renderAdmin();
+            }
+        }
+
+        async function removeNoti(id) {
+            if(confirm("Xóa thông báo?")) {
+                await supabase.from('notifications').delete().eq('id', id);
+                renderAdmin();
+            }
+        }
+
+        // SỬA LỖI QUAN TRỌNG: Đổi renderNotifications thành renderAdmin
+        setInterval(renderAdmin, 10000); 
+        window.onload = renderAdmin;
+
+    </script>
+</body>
+</html>
